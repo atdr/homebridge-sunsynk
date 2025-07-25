@@ -2,6 +2,10 @@
 
 This change log documents all release versions of homebridge-sunsynk
 
+### 1.1.2 (2025-07-25)
+
+- **FIX** - Fixed the problem with no config for Verification
+
 ### 1.1.1 (2025-03-11)
 
 - **FEATURE** - Added Grid Monitoring as an outlet.

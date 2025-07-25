@@ -24,6 +24,15 @@ module.exports = function (homebridge) {
 }
 
 function SunsynkPlatform(log, config) {
+    this.valid = false;
+
+    if (!config || !config.options || !config.options.username || !config.options.password) {
+        log.warn("[Sunsynk] Missing or incomplete configuration. Plugin will not start.");
+        return;
+    }
+
+    this.valid = true;
+
     this.log = new LogUtil(config.options.debug, config.name, log);
 
     this.username = config.options.username;
@@ -47,6 +56,12 @@ function SunsynkPlatform(log, config) {
 SunsynkPlatform.prototype = {
     accessories: async function (callback) {
 
+        if (!this.valid) {
+            this.log?.warn("[Sunsynk] Skipping accessory registration due to invalid configuration.");
+            callback([]);
+            return;
+        }
+        
         let api;
         api = new SunsynkAPI(this.username, this.password, this.appKey, this.appSecret, this.log);
 
