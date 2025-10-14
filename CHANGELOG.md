@@ -2,6 +2,10 @@
 
 This change log documents all release versions of homebridge-sunsynk
 
+### 1.1.4 (2025-10-14)
+
+- **FIX** - Dependencies update
+
 ### 1.1.3 (2025-07-28)
 
 - **NEWS** - We are verified!!
