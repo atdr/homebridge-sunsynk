@@ -2,6 +2,14 @@
 
 This change log documents all release versions of homebridge-sunsynk
 
+### 1.1.5 (2026-01-13)
+
+- **FIX** - API call update and authentication
+
+### 1.1.5-beta.*
+
+- **ATTEMPTS** - Trying to fix the API call
+
 ### 1.1.4 (2025-10-14)
 
 - **FIX** - Dependencies update
