@@ -3,6 +3,8 @@ var Characteristic;
 var Accessory;
 var crypto = require("crypto");
 const CryptoJS = require('crypto-js');
+const qs = require('querystring');
+
 
 const SunsynkAPI = require("./lib/sunsynkAPI");
 
@@ -61,7 +63,7 @@ SunsynkPlatform.prototype = {
             callback([]);
             return;
         }
-        
+
         let api;
         api = new SunsynkAPI(this.username, this.password, this.appKey, this.appSecret, this.log);
 
@@ -136,71 +138,75 @@ SunsynkPlatform.prototype = {
 
 
         async function processData(data) {
-            var real_result = await api.get(`/plant/${plant_id}/realtime`, null, null);
+            try {
+                var real_result = await api.get(`/plant/${plant_id}/realtime`, null, null);
 
-            var batt_result = await api.get(`/plant/energy/${plant_id}/flow`, null, null);
+                var batt_result = await api.get(`/plant/energy/${plant_id}/flow`, null, null);
 
-            var realAC_result = await api.get(`/inverter/grid/${plant_sn}/realtime`, null, null);
+                var realAC_result = await api.get(`/inverter/grid/${plant_sn}/realtime`, null, null);
 
-            for (var i = 0; i < allacc.length; i++) {
-                if (allacc[i].type == 'pv') {
-                    switch (allacc[i].name) {
-                        case 'Current PV Power W':
-                            allacc[i].changeHandler(real_result.pac);
-                            break;
+                for (var i = 0; i < allacc.length; i++) {
+                    if (allacc[i].type == 'pv') {
+                        switch (allacc[i].name) {
+                            case 'Current PV Power W':
+                                allacc[i].changeHandler(real_result.pac);
+                                break;
 
-                        case 'Today PV Electricity kWh':
-                            allacc[i].changeHandler(real_result.etoday);
-                            break;
+                            case 'Today PV Electricity kWh':
+                                allacc[i].changeHandler(real_result.etoday);
+                                break;
 
-                        case 'Month PV Electricity kWh':
-                            allacc[i].changeHandler(real_result.emonth);
-                            break;
+                            case 'Month PV Electricity kWh':
+                                allacc[i].changeHandler(real_result.emonth);
+                                break;
 
-                        case 'Year PV Electricity kWh':
-                            allacc[i].changeHandler(real_result.eyear);
-                            break;
+                            case 'Year PV Electricity kWh':
+                                allacc[i].changeHandler(real_result.eyear);
+                                break;
 
-                        case 'Total PV Electricity kWh':
-                            allacc[i].changeHandler(real_result.etotal);
-                            break;
+                            case 'Total PV Electricity kWh':
+                                allacc[i].changeHandler(real_result.etotal);
+                                break;
 
-                        case 'Battery Power W':
-                            allacc[i].changeHandler(batt_result.battPower);
-                            break;
+                            case 'Battery Power W':
+                                allacc[i].changeHandler(batt_result.battPower);
+                                break;
 
-                        case 'Load Power W':
-                            allacc[i].changeHandler(batt_result.loadOrEpsPower);
-                            break;
+                            case 'Load Power W':
+                                allacc[i].changeHandler(batt_result.loadOrEpsPower);
+                                break;
+                        }
+                    }
+                    else if (allacc[i].type == 'batt') {
+                        allacc[i].changeHandler1(batt_result.soc);
+
+                        var state = Characteristic.ChargingState.NOT_CHARGING;
+
+                        if (batt_result.toBat) {
+                            state = Characteristic.ChargingState.CHARGING;
+                        }
+                        else if (batt_result.batTo) {
+                            state = Characteristic.ChargingState.NOT_CHARGING;
+                        }
+
+                        allacc[i].changeChargeState(state);
+
+                        allacc[i].changeLevel(batt_result.soc < lowbatt ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
+
+                        allacc[i].changeHandler(batt_result.soc);
+
+                    }
+                    else if (allacc[i].type == 'pow') {
+                        switch (allacc[i].name) {
+                            case 'Grid Power':
+                                handler_change = true;
+                                allacc[i].changeHandler(realAC_result.acRealyStatus);
+                                break;
+                        }
                     }
                 }
-                else if (allacc[i].type == 'batt') {
-                    allacc[i].changeHandler1(batt_result.soc);
-
-                    var state = Characteristic.ChargingState.NOT_CHARGING;
-
-                    if (batt_result.toBat) {
-                        state = Characteristic.ChargingState.CHARGING;
-                    }
-                    else if (batt_result.batTo) {
-                        state = Characteristic.ChargingState.NOT_CHARGING;
-                    }
-
-                    allacc[i].changeChargeState(state);
-
-                    allacc[i].changeLevel(batt_result.soc < lowbatt ? Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW : Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL)
-
-                    allacc[i].changeHandler(batt_result.soc);
-
-                }
-                else if (allacc[i].type == 'pow') {
-                    switch (allacc[i].name) {
-                        case 'Grid Power':
-                            handler_change = true;
-                            allacc[i].changeHandler(realAC_result.acRealyStatus);
-                            break;
-                    }
-                }
+            } catch (err) {
+                platform.log.warn('[Sunsynk] Polling failed:', err.message);
             }
         }
 
