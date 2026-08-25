@@ -49,6 +49,10 @@ function SunsynkPlatform(log, config) {
     pollInterval = config.options.pollInterval * 60000;
     lowbatt = config.options.lowbatt;
 
+    // Only an explicit false disables a sensor, so an existing config without
+    // this key keeps publishing every sensor.
+    this.sensors = config.options.sensors || {};
+
     this.appKey = "204013305";
     this.appSecret = "zIQJeoPRXCjDV5anS5WIH7SQPAgdVaPm";
 
@@ -63,6 +67,41 @@ SunsynkPlatform.prototype = {
             callback([]);
             return;
         }
+
+        // Sensor catalogue. "name" is used by Homebridge to derive the HomeKit
+        // UUID and by SunsynkAccessory to derive the serial number, so changing
+        // a name recreates the accessory in HomeKit and breaks any automation
+        // that uses it. These strings must stay exactly as they are.
+        // "source" says which polled endpoint feeds the sensor.
+        var sensors = [
+            { "id": "currentPvPower", "name": "Current PV Power W", "type": "pv", "source": "realtime" },
+            { "id": "todayPvEnergy", "name": "Today PV Electricity kWh", "type": "pv", "source": "realtime" },
+            { "id": "monthPvEnergy", "name": "Month PV Electricity kWh", "type": "pv", "source": "realtime" },
+            { "id": "yearPvEnergy", "name": "Year PV Electricity kWh", "type": "pv", "source": "realtime" },
+            { "id": "totalPvEnergy", "name": "Total PV Electricity kWh", "type": "pv", "source": "realtime" },
+            { "id": "batteryPower", "name": "Battery Power W", "type": "pv", "source": "flow" },
+            { "id": "batterySoc", "name": "Battery SOC", "type": "batt", "source": "flow" },
+            { "id": "loadPower", "name": "Load Power W", "type": "pv", "source": "flow" },
+            { "id": "gridPower", "name": "Grid Power", "type": "pow", "source": "grid" }
+        ];
+
+        var selected = this.sensors;
+        var active = sensors.filter(function (sensor) {
+            return selected[sensor.id] !== false;
+        });
+
+        if (active.length === 0) {
+            this.log.log("Every sensor is disabled in the configuration, nothing to publish.");
+            callback([]);
+            return;
+        }
+
+        this.log.log("Publishing " + active.length + " of " + sensors.length + " sensors.");
+
+        // Only poll an endpoint when something still consumes it.
+        var needRealtime = active.some(function (sensor) { return sensor.source === "realtime"; });
+        var needFlow = active.some(function (sensor) { return sensor.source === "flow"; });
+        var needGrid = active.some(function (sensor) { return sensor.source === "grid"; });
 
         let api;
         api = new SunsynkAPI(this.username, this.password, this.appKey, this.appSecret, this.log);
@@ -93,43 +132,9 @@ SunsynkPlatform.prototype = {
 
         var allacc = [];
 
-        var cur_pw = { "name": "Current PV Power W", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, cur_pw);
-        allacc.push(acc);
-        var today_pw = { "name": "Today PV Electricity kWh", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, today_pw);
-        allacc.push(acc);
-        var month_pw = { "name": "Month PV Electricity kWh", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, month_pw);
-        allacc.push(acc);
-        var year_pw = { "name": "Year PV Electricity kWh", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, year_pw);
-        allacc.push(acc);
-        var total_pw = { "name": "Total PV Electricity kWh", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, total_pw);
-        allacc.push(acc);
-
-        var batt_pw = { "name": "Battery Power W", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, batt_pw);
-        allacc.push(acc);
-        var batt_soc = { "name": "Battery SOC", "type": "batt" };
-        var acc = new SunsynkAccessory(this.log, batt_soc);
-        allacc.push(acc);
-
-        var load_pw = { "name": "Load Power W", "type": "pv" };
-        var acc = new SunsynkAccessory(this.log, load_pw);
-        allacc.push(acc);
-
-
-        var load_grid_pw = { "name": "Grid Power", "type": "pow" };
-        var acc = new SunsynkAccessory(this.log, load_grid_pw);
-        allacc.push(acc);
-
-        /*for (var i = 0; i < 9; i++) {
-            var acc = new SunsynkAccessory(this.log, i);
-            allacc.push(acc);
-        }*/
-
+        for (var i = 0; i < active.length; i++) {
+            allacc.push(new SunsynkAccessory(this.log, active[i]));
+        }
 
         callback(allacc);
         platform = this;
@@ -139,11 +144,11 @@ SunsynkPlatform.prototype = {
 
         async function processData(data) {
             try {
-                var real_result = await api.get(`/plant/${plant_id}/realtime`, null, null);
+                var real_result = needRealtime ? await api.get(`/plant/${plant_id}/realtime`, null, null) : null;
 
-                var batt_result = await api.get(`/plant/energy/${plant_id}/flow`, null, null);
+                var batt_result = needFlow ? await api.get(`/plant/energy/${plant_id}/flow`, null, null) : null;
 
-                var realAC_result = await api.get(`/inverter/grid/${plant_sn}/realtime`, null, null);
+                var realAC_result = needGrid ? await api.get(`/inverter/grid/${plant_sn}/realtime`, null, null) : null;
 
                 for (var i = 0; i < allacc.length; i++) {
                     if (allacc[i].type == 'pv') {
