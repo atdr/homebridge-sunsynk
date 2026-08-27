@@ -50,6 +50,58 @@
                         "type": "boolean",
                         "default": false,
                         "required": true
+                    },
+                    "sensors": {
+                        "title": "Sensors",
+                        "type": "object",
+                        "description": "Choose which sensors are published to HomeKit. This is optional. Leaving everything ticked keeps the default behaviour of publishing all of them. Unticking a sensor removes it from HomeKit on the next restart, along with any automations, scenes, favourites and room assignment that use it.",
+                        "properties": {
+                            "currentPvPower": {
+                                "title": "Current PV Power W",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "todayPvEnergy": {
+                                "title": "Today PV Electricity kWh",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "monthPvEnergy": {
+                                "title": "Month PV Electricity kWh",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "yearPvEnergy": {
+                                "title": "Year PV Electricity kWh",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "totalPvEnergy": {
+                                "title": "Total PV Electricity kWh",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "batteryPower": {
+                                "title": "Battery Power W",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "batterySoc": {
+                                "title": "Battery SOC",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "loadPower": {
+                                "title": "Load Power W",
+                                "type": "boolean",
+                                "default": true
+                            },
+                            "gridPower": {
+                                "title": "Grid Power",
+                                "type": "boolean",
+                                "default": true
+                            }
+                        }
                     }
                 }
             }

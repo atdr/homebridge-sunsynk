@@ -6,7 +6,7 @@
 # homebridge-sunsynk
  Sunsynk Inveter plugin
 
-A plugin for [Homebridge](https://github.com/nfarina/homebridge) that connects to your Sunsynk Inverter with Homekit. The plugin provides eight key sensors:  Current Power Production (in Watts), Today's Yield (in kWh), This Month's Yield (in kWh), This Year's Yield (in kWh), the Total Yield (in kWh), Battery Power (in W), Battery SOC (in %) and Load Power (in W). With these sensors, you can effortlessly create automations in your Apple Home based on your solar panel yield, power usage and battery status for a Sunsynk inverter and the e-linter API. homebridge-sunsynk was originated by [Chris Posthumus](https://github.com/k1ll3r234).
+A plugin for [Homebridge](https://github.com/nfarina/homebridge) that connects to your Sunsynk Inverter with Homekit. The plugin provides nine key sensors:  Current Power Production (in Watts), Today's Yield (in kWh), This Month's Yield (in kWh), This Year's Yield (in kWh), the Total Yield (in kWh), Battery Power (in W), Battery SOC (in %), Load Power (in W) and Grid Power (as an outlet). With these sensors, you can effortlessly create automations in your Apple Home based on your solar panel yield, power usage and battery status for a Sunsynk inverter and the e-linter API. homebridge-sunsynk was originated by [Chris Posthumus](https://github.com/k1ll3r234).
 
 
 You can also set automations to happen when battery reach a certain level or when you generate more than enough power and can turn your pool pump on etc.
@@ -32,6 +32,47 @@ Example:
     }
 }
 ```
+
+### Choosing which sensors to publish
+
+By default all nine sensors are published. If you don't need some of them, for example the battery sensors on a system without a battery, add an optional `sensors` block and set the ones you don't want to `false`:
+
+```json
+{
+    "name": "Sunsynk Inverter",
+    "platform": "Sunsynk",
+    "options": {
+        "username": "",
+        "password": "",
+        "pollInterval": 10,
+        "lowbatt": 20,
+        "debug": false,
+        "sensors": {
+            "batteryPower": false,
+            "batterySoc": false,
+            "gridPower": false
+        }
+    }
+}
+```
+
+You can also tick and untick them in the Homebridge UI. Only a sensor explicitly set to `false` is switched off, so you only need to list the ones you are turning off, and a config without a `sensors` block keeps publishing all nine.
+
+| Setting | Accessory in HomeKit | Appears as |
+| --- | --- | --- |
+| `currentPvPower` | Current PV Power W | Light sensor |
+| `todayPvEnergy` | Today PV Electricity kWh | Light sensor |
+| `monthPvEnergy` | Month PV Electricity kWh | Light sensor |
+| `yearPvEnergy` | Year PV Electricity kWh | Light sensor |
+| `totalPvEnergy` | Total PV Electricity kWh | Light sensor |
+| `batteryPower` | Battery Power W | Light sensor |
+| `batterySoc` | Battery SOC | Humidity sensor and battery |
+| `loadPower` | Load Power W | Light sensor |
+| `gridPower` | Grid Power | Outlet |
+
+When every sensor that uses a given part of the Sunsynk API is switched off, that data is no longer requested at all.
+
+**Turning a sensor off removes it from HomeKit on the next restart.** Anything attached to it in the Home app goes with it: automations, scenes, favourites, its room and any custom name you gave it. Turning it back on later adds it again as a new accessory, so you would need to set those up again.
 
 ## Future features
 

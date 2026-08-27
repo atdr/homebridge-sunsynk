@@ -2,6 +2,12 @@
 
 This change log documents all release versions of homebridge-sunsynk
 
+### Unreleased
+
+- **FEATURE** - Sensors can now be switched on and off individually from the Homebridge UI or an optional `sensors` block in the config. Existing configurations are unaffected and keep publishing all nine sensors.
+- **FEATURE** - The plugin no longer polls an API endpoint when none of the sensors that use it are enabled.
+- **DOCS** - Corrected the sensor list in the README, which still described eight sensors and left out Grid Power.
+
 ### 1.1.5 (2026-01-13)
 
 - **FIX** - API call update and authentication
