@@ -2,8 +2,9 @@
 
 This change log documents all release versions of homebridge-sunsynk
 
-### Unreleased
+### 1.2.0-beta.1 (2026-08-27)
 
+- **FIX** - A failed poll no longer stops the plugin. The polling error handler called `platform.log.warn()`, which `LogUtil` did not have, so any hiccup from the Sunsynk API threw `TypeError: platform.log.warn is not a function` inside the `catch` and became an unhandled rejection. `LogUtil` now has a `warn` method, and it always prints rather than only in debug mode. The failure is logged and polling resumes at the next interval. ([#20](https://github.com/K1LL3R234/homebridge-sunsynk/issues/20))
 - **FEATURE** - Sensors can now be switched on and off individually from the Homebridge UI or an optional `sensors` block in the config. Existing configurations are unaffected and keep publishing all nine sensors.
 - **FEATURE** - The plugin no longer polls an API endpoint when none of the sensors that use it are enabled.
 - **DOCS** - Corrected the sensor list in the README, which still described eight sensors and left out Grid Power.
