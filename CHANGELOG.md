@@ -5,6 +5,8 @@ This change log documents all release versions of homebridge-sunsynk
 ### Unreleased
 
 - **FIX** - An inverter in an offline, warning, fault, or upgrading state no longer crashes the child bridge during startup. The plugin now validates plant and inverter API responses, searches across inverter states when Grid Power is enabled, and skips the inverter lookup when Grid Power is disabled. ([#21](https://github.com/K1LL3R234/homebridge-sunsynk/issues/21))
+- **FIX** - Raised the minimum Axios version to `^1.20.0` to resolve dependency advisories and removed the unused vulnerable `string` dependency.
+- **CHORE** - Added an explicit `.npmignore` so deployment packages include only the intended files without npm packaging warnings.
 
 ### 1.2.0-beta.1 (2026-08-27)
 
