@@ -230,8 +230,10 @@ SunsynkPlatform.prototype = {
                     else if (allacc[i].type == 'pow') {
                         switch (allacc[i].name) {
                             case 'Grid Power':
-                                handler_change = true;
-                                allacc[i].changeHandler(realAC_result.acRealyStatus);
+                                if (realAC_result) {
+                                    handler_change = true;
+                                    allacc[i].changeHandler(realAC_result.acRealyStatus);
+                                }
                                 break;
                         }
                     }
