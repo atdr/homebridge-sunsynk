@@ -27,6 +27,10 @@ class LogUtil {
         }
     }
 
+    warn(...args) {
+        console.log(this.getCurrentTimestamp(), `[${this.prefix}[WARN]]`, ...args);
+    }
+
     error(...args) {
         if (this.isDebug) {
             console.log(this.getCurrentTimestamp(), `[${this.prefix}[ERROR]]`, ...args);
