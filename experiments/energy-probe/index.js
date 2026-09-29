@@ -111,14 +111,24 @@ class Probe {
     }
   }
 
-  // Synthetic day: PV bell curve, flat-ish load, battery absorbs the difference.
+  // Synthetic day: PV bell curve and a wavy load. The battery takes the surplus and covers the
+  // deficit within its capacity and rate limits; whatever it cannot absorb or supply goes to or
+  // from the grid, so the grid meter both imports (night) and exports (full battery at midday).
+  // State of charge integrates over simulated time (real interval x speedup).
   sample() {
-    const h = (Date.now() / 3.6e6 * (this.config.speedup ?? 1)) % 24;
+    const speedup = this.config.speedup ?? 1;
+    const h = (Date.now() / 3.6e6 * speedup) % 24;
     const pv = Math.max(0, Math.sin((h - 6) / 12 * Math.PI)) * 4000;
     const load = 600 + 300 * Math.sin(h);
-    const batt = pv - load; // + charging, - discharging (W)
-    const soc = Math.round(50 + 45 * Math.sin((h - 9) / 12 * Math.PI));
-    return { pv, load, batt, soc };
+    const capWh = (this.config.batteryKWh ?? 5) * 1000, maxW = this.config.batteryMaxW ?? 3000, floor = 0.1;
+    this.socWh ??= capWh * 0.5;
+    const dtSimH = (this.config.intervalSec ?? 10) * speedup / 3600;
+    const want = pv - load; // + surplus to charge, - deficit to discharge (W)
+    const room = want > 0 ? (capWh - this.socWh) / dtSimH : (this.socWh - capWh * floor) / dtSimH;
+    const batt = Math.sign(want) * Math.min(Math.abs(want), maxW, Math.max(0, room));
+    this.socWh = Math.min(capWh, Math.max(capWh * floor, this.socWh + batt * dtSimH));
+    const grid = load - pv + batt; // + import, - export (W)
+    return { pv, load, batt, grid, soc: Math.round(this.socWh / capWh * 100) };
   }
 
   async tick() {
@@ -138,7 +148,7 @@ class Probe {
     await m.updateAccessoryState(batt, 'powerSource', { batPercentRemaining: s.soc * 2, batChargeState: s.batt > 0 ? 1 : 3 });
     if (solar) {
       e.grid = (e.grid ?? { imp: 0, exp: 0 });
-      const grid = s.load - s.pv + Math.max(0, s.batt); // + import, - export (ignores battery limits; synthetic)
+      const grid = s.grid;
       if (grid > 0) e.grid.imp += grid * dtH * 1000; else e.grid.exp += -grid * dtH * 1000;
       await m.updateAccessoryState(solar, 'electricalPowerMeasurement', { activePower: -mw(s.pv) });
       await m.updateAccessoryState(solar, 'electricalEnergyMeasurement', { cumulativeEnergyImported: en(0), cumulativeEnergyExported: en(e.pvExp) });
@@ -148,7 +158,7 @@ class Probe {
       await m.updateAccessoryState(meter, 'electricalPowerMeasurement', { activePower: mw(grid) });
       await m.updateAccessoryState(meter, 'electricalEnergyMeasurement', { cumulativeEnergyImported: en(e.grid.imp), cumulativeEnergyExported: en(e.grid.exp) });
     }
-    this.log.info(`pv=${s.pv.toFixed(0)}W load=${s.load.toFixed(0)}W batt=${s.batt.toFixed(0)}W soc=${s.soc}%`);
+    this.log.info(`pv=${s.pv.toFixed(0)}W load=${s.load.toFixed(0)}W batt=${s.batt.toFixed(0)}W grid=${s.grid.toFixed(0)}W soc=${s.soc}%`);
   }
 }
 
