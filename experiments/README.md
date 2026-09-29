@@ -2,6 +2,8 @@
 
 Scratch code from the Matter energy investigation. Not part of the plugin; nothing here is loaded by `index.js`.
 
+Results from running the probe against Apple Home are in [FINDINGS.md](FINDINGS.md).
+
 ## energy-probe/
 Matter-only Homebridge platform (`EnergyProbe`) that publishes synthetic inverter readings in seven shapes:
 
